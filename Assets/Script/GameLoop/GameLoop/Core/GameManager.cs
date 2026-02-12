@@ -24,7 +24,7 @@ public static GameManager I { get; private set; }
 
     void Awake()
     {
-        if (I != null && I != this) { Destroy(gameObject); return; }
+        //if (I != null && I != this) { Destroy(gameObject); return; }
         I = this;
     }
 
