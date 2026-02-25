@@ -9,14 +9,18 @@ public class GameManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private HUDController hud;
     [SerializeField] private PlayerLife player;
+    [SerializeField] private SpriteRenderer playerSprite;
+    public GameObject spawnCam;
 
     [Header("Rules")]
     [SerializeField] private int coinsToWin = 5;
     public int totalPartsToFind = 3;
 
-    [Header("Respawn")]
+    [Header("Respawn & Feedback")]
     [SerializeField] private float respawnDelay = 0.6f;
     [SerializeField] private float postRespawnInvincible = 1.0f;
+    [SerializeField] private AudioClip deathSound;
+    [SerializeField] private float flashSpeed = 0.05f;
 
     public GameState State { get; private set; } = GameState.Playing;
     public int Coins { get; private set; } = 0;
@@ -28,10 +32,16 @@ public class GameManager : MonoBehaviour
 
     public Vector3 RespawnPoint { get; private set; }
 
+    private AudioSource sfxSource;
+
+    // NEW: Property to check if conditions are met (but doesn't trigger win yet)
+    public bool CanWin => Coins >= coinsToWin && PartsCollected >= totalPartsToFind;
+
     void Awake()
     {
-        //if (I != null && I != this) { Destroy(gameObject); return; }
         I = this;
+        sfxSource = gameObject.AddComponent<AudioSource>();
+        sfxSource.spatialBlend = 0f;
     }
 
     void Start()
@@ -40,6 +50,11 @@ public class GameManager : MonoBehaviour
 
         if (player != null)
             RespawnPoint = player.transform.position;
+
+        if (playerSprite == null && player != null)
+        {
+            playerSprite = player.GetComponent<SpriteRenderer>();
+        }
 
         hud?.SetCoins(Coins, coinsToWin);
         hud?.ClearMessage();
@@ -50,7 +65,6 @@ public class GameManager : MonoBehaviour
     public void RegisterCheckpoint(Vector3 p)
     {
         RespawnPoint = p;
-        Debug.Log($"Respawn point: {p}");
     }
 
     public void AddCoin(int amount)
@@ -60,7 +74,7 @@ public class GameManager : MonoBehaviour
         Coins += amount;
         hud?.SetCoins(Coins, coinsToWin);
 
-        CheckWinCondition();
+        // Removed automatic CheckWinCondition()
     }
 
     public void CollectPart(int partIndex)
@@ -72,15 +86,7 @@ public class GameManager : MonoBehaviour
 
         OnPartCollected?.Invoke(partIndex);
 
-        CheckWinCondition();
-    }
-
-    private void CheckWinCondition()
-    {
-        if (Coins >= coinsToWin && PartsCollected >= totalPartsToFind)
-        {
-            Win();
-        }
+        // Removed automatic CheckWinCondition()
     }
 
     public void SetPlayerControl(bool enabled)
@@ -109,13 +115,43 @@ public class GameManager : MonoBehaviour
         State = GameState.Dead;
         hud?.ShowDead();
 
-        SetPlayerControl(false);
+        if (player != null)
+        {
+            player.SetControlEnabled(false);
+            player.StopMotion();
+        }
+
+        if (deathSound != null && sfxSource != null)
+        {
+            sfxSource.PlayOneShot(deathSound);
+        }
+
         StartCoroutine(CoRespawn());
     }
 
     IEnumerator CoRespawn()
     {
-        yield return new WaitForSeconds(respawnDelay);
+        float elapsed = 0f;
+        bool isSpriteVisible = true;
+
+        while (elapsed < respawnDelay)
+        {
+            if (playerSprite != null)
+            {
+                isSpriteVisible = !isSpriteVisible;
+                playerSprite.enabled = isSpriteVisible;
+                playerSprite.color = isSpriteVisible ? Color.red : Color.white;
+            }
+
+            yield return new WaitForSeconds(flashSpeed);
+            elapsed += flashSpeed;
+        }
+
+        if (playerSprite != null)
+        {
+            playerSprite.enabled = true;
+            playerSprite.color = Color.white;
+        }
 
         if (player != null)
         {
@@ -123,6 +159,7 @@ public class GameManager : MonoBehaviour
             player.StopMotion();
             player.SetControlEnabled(true);
             player.SetInvincible(postRespawnInvincible);
+            spawnCam.SetActive(true);
         }
 
         hud?.ShowDead();

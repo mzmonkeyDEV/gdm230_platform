@@ -20,11 +20,17 @@ public class PlayerMovement : MonoBehaviour
     public float ghostSpawnDelay = 0.05f;
 
     [Header("Visual Effects")]
+    public ParticleSystem footSmoke;
     public float tiltAngle = 10f;
     public float tiltSpeed = 15f;
     public float spinDuration = 0.5f;
     [Range(1, 10)]
     public int numberOfSpins = 2;
+
+    [Header("Audio")]
+    public AudioClip walkSound;
+    public AudioClip jumpSound;
+    public AudioClip dashSound;
 
     [Header("Ground Detection")]
     public Transform groundCheck;
@@ -35,6 +41,9 @@ public class PlayerMovement : MonoBehaviour
     private Animator animator;
     private SpriteRenderer spriteRenderer;
     private Vector2 moveInput;
+
+    private AudioSource walkSource;
+    private AudioSource sfxSource;
 
     private bool isGrounded;
     private bool canDoubleJump;
@@ -47,6 +56,11 @@ public class PlayerMovement : MonoBehaviour
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+
+        walkSource = gameObject.AddComponent<AudioSource>();
+        walkSource.loop = true;
+
+        sfxSource = gameObject.AddComponent<AudioSource>();
     }
 
     private void OnMove(InputValue value)
@@ -64,6 +78,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 PerformJump();
                 canDoubleJump = true;
+                CreateDust();
             }
             else if (canDoubleJump)
             {
@@ -92,12 +107,16 @@ public class PlayerMovement : MonoBehaviour
         v.y = jumpForce;
         rb.linearVelocity = v;
         animator.SetTrigger("jump");
+
+        if (jumpSound != null) sfxSource.PlayOneShot(jumpSound);
     }
 
     private IEnumerator PerformDash()
     {
         canDash = false;
         isDashing = true;
+
+        if (dashSound != null) sfxSource.PlayOneShot(dashSound);
 
         float originalGravity = rb.gravityScale;
         rb.gravityScale = 0f;
@@ -114,6 +133,8 @@ public class PlayerMovement : MonoBehaviour
         isSpinning = false;
         transform.rotation = Quaternion.identity;
         animator.SetTrigger("dash");
+
+        CreateDust();
 
         StartCoroutine(SpawnGhosts());
 
@@ -148,14 +169,45 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        if (isDashing) return;
+        if (isDashing)
+        {
+            if (walkSource.isPlaying) walkSource.Stop();
+            return;
+        }
 
         if (groundCheck != null)
         {
             isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
         }
 
-        if (spriteRenderer != null && Mathf.Abs(moveInput.x) > 0.01f)
+        bool isMoving = Mathf.Abs(moveInput.x) > 0.01f;
+
+        if (footSmoke != null)
+        {
+            if (isMoving && isGrounded)
+            {
+                if (!footSmoke.isPlaying) footSmoke.Play();
+            }
+            else
+            {
+                if (footSmoke.isPlaying) footSmoke.Stop();
+            }
+        }
+
+        if (isMoving && isGrounded)
+        {
+            if (walkSound != null && !walkSource.isPlaying)
+            {
+                walkSource.clip = walkSound;
+                walkSource.Play();
+            }
+        }
+        else
+        {
+            if (walkSource.isPlaying) walkSource.Stop();
+        }
+
+        if (spriteRenderer != null && isMoving)
         {
             spriteRenderer.flipX = moveInput.x < 0f;
             animator.SetBool("running", true);
@@ -170,6 +222,14 @@ public class PlayerMovement : MonoBehaviour
         if (!isSpinning)
         {
             HandleRunningTilt();
+        }
+    }
+
+    private void CreateDust()
+    {
+        if (footSmoke != null)
+        {
+            footSmoke.Play();
         }
     }
 

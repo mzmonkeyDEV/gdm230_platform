@@ -1,15 +1,16 @@
 using UnityEngine;
 using System.Collections;
-using TMPro; // REQUIRED for Text Mesh Pro
+using TMPro;
 
 [RequireComponent(typeof(Collider2D))]
 public class TimeMachine : MonoBehaviour
 {
     [Header("UI & Dialogue")]
-    public GameObject dialogueBox; // The background bubble (optional)
-    public TMP_Text dialogueText;  // Changed to TMP_Text
+    public GameObject dialogueBox;
+    public TMP_Text dialogueText;
     public string line1 = "I need to fix my time machine to go back home.";
     public string line2 = "I have to find these parts. They're scattered around here somewhere.";
+    public string winLine = "All systems go! Initiating time jump..."; // NEW: Victory text
     public float timePerLine = 3.0f;
 
     [Header("Cameras")]
@@ -58,19 +59,53 @@ public class TimeMachine : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        if (!hasTriggered && other.CompareTag("Player"))
+        if (!other.CompareTag("Player")) return;
+
+        // SCENARIO 1: First time meeting (Intro Cutscene)
+        if (!hasTriggered)
         {
             hasTriggered = true;
             StartCoroutine(CutsceneRoutine());
         }
+        // SCENARIO 2: Player returned (Check for Win)
+        else
+        {
+            if (GameManager.I.CanWin)
+            {
+                // Trigger the win sequence
+                StartCoroutine(WinRoutine());
+            }
+            else
+            {
+                // Optional: Feedback if they came back too early
+                // Debug.Log("You still need more parts!");
+            }
+        }
     }
 
-    private IEnumerator CutsceneRoutine()
+    private IEnumerator WinRoutine()
     {
         // 1. Freeze Player
         GameManager.I?.SetPlayerControl(false);
 
-        // 2. Show Dialogue
+        // 2. Final Dialogue
+        if (dialogueBox != null) dialogueBox.SetActive(true);
+        if (dialogueText != null)
+        {
+            dialogueText.gameObject.SetActive(true);
+            dialogueText.text = winLine;
+        }
+
+        yield return new WaitForSeconds(3f);
+
+        // 3. Trigger Game Manager Win (Show UI)
+        GameManager.I?.Win();
+    }
+
+    private IEnumerator CutsceneRoutine()
+    {
+        GameManager.I?.SetPlayerControl(false);
+
         if (dialogueBox != null) dialogueBox.SetActive(true);
         if (dialogueText != null)
         {
@@ -82,11 +117,9 @@ public class TimeMachine : MonoBehaviour
         if (dialogueText != null) dialogueText.text = line2;
         yield return new WaitForSeconds(timePerLine);
 
-        // Hide Dialogue
         if (dialogueBox != null) dialogueBox.SetActive(false);
         if (dialogueText != null) dialogueText.gameObject.SetActive(false);
 
-        // 3. Camera Sequence
         if (mainCamera != null) mainCamera.SetActive(false);
 
         for (int i = 0; i < partCameras.Length; i++)
@@ -101,23 +134,19 @@ public class TimeMachine : MonoBehaviour
 
         if (mainCamera != null) mainCamera.SetActive(true);
 
-        // 4. Show Missing Parts Icons
         for (int i = 0; i < floatingIcons.Length; i++)
         {
-            // Only show the icon if the player HAS NOT collected that part yet
             if (floatingIcons[i] != null && !GameManager.I.HasParts[i])
             {
                 floatingIcons[i].SetActive(true);
             }
         }
 
-        // 5. Unfreeze Player
         GameManager.I?.SetPlayerControl(true);
     }
 
     private void HandlePartCollected(int partIndex)
     {
-        // When the GameManager announces a part was collected, turn off its floating icon
         if (hasTriggered && partIndex >= 0 && partIndex < floatingIcons.Length)
         {
             if (floatingIcons[partIndex] != null)
