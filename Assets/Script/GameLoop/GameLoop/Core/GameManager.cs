@@ -1,9 +1,10 @@
 using UnityEngine;
 using System.Collections;
+using System;
 
 public class GameManager : MonoBehaviour
 {
-public static GameManager I { get; private set; }
+    public static GameManager I { get; private set; }
 
     [Header("References")]
     [SerializeField] private HUDController hud;
@@ -11,6 +12,7 @@ public static GameManager I { get; private set; }
 
     [Header("Rules")]
     [SerializeField] private int coinsToWin = 5;
+    public int totalPartsToFind = 3;
 
     [Header("Respawn")]
     [SerializeField] private float respawnDelay = 0.6f;
@@ -19,7 +21,11 @@ public static GameManager I { get; private set; }
     public GameState State { get; private set; } = GameState.Playing;
     public int Coins { get; private set; } = 0;
 
-    // default spawn point
+    public bool[] HasParts { get; private set; } = new bool[3];
+    public int PartsCollected { get; private set; } = 0;
+
+    public event Action<int> OnPartCollected;
+
     public Vector3 RespawnPoint { get; private set; }
 
     void Awake()
@@ -33,7 +39,7 @@ public static GameManager I { get; private set; }
         State = GameState.Playing;
 
         if (player != null)
-            RespawnPoint = player.transform.position; 
+            RespawnPoint = player.transform.position;
 
         hud?.SetCoins(Coins, coinsToWin);
         hud?.ClearMessage();
@@ -54,8 +60,36 @@ public static GameManager I { get; private set; }
         Coins += amount;
         hud?.SetCoins(Coins, coinsToWin);
 
-        if (Coins >= coinsToWin)
+        CheckWinCondition();
+    }
+
+    public void CollectPart(int partIndex)
+    {
+        if (!IsPlaying || partIndex < 0 || partIndex >= HasParts.Length || HasParts[partIndex]) return;
+
+        HasParts[partIndex] = true;
+        PartsCollected++;
+
+        OnPartCollected?.Invoke(partIndex);
+
+        CheckWinCondition();
+    }
+
+    private void CheckWinCondition()
+    {
+        if (Coins >= coinsToWin && PartsCollected >= totalPartsToFind)
+        {
             Win();
+        }
+    }
+
+    public void SetPlayerControl(bool enabled)
+    {
+        if (player != null)
+        {
+            player.SetControlEnabled(enabled);
+            if (!enabled) player.StopMotion();
+        }
     }
 
     public void Win()
@@ -64,13 +98,10 @@ public static GameManager I { get; private set; }
 
         State = GameState.Win;
         hud?.ShowWin();
-        
-        if (player != null)
-        {
-            player.SetControlEnabled(false);
-        }
+
+        SetPlayerControl(false);
     }
-    
+
     public void PlayerDied()
     {
         if (!IsPlaying) return;
@@ -78,12 +109,7 @@ public static GameManager I { get; private set; }
         State = GameState.Dead;
         hud?.ShowDead();
 
-        if (player != null)
-        {
-            player.SetControlEnabled(false);
-            player.StopMotion();
-        }
-
+        SetPlayerControl(false);
         StartCoroutine(CoRespawn());
     }
 
@@ -100,7 +126,7 @@ public static GameManager I { get; private set; }
         }
 
         hud?.ShowDead();
-        
+
         if (State != GameState.Win)
             State = GameState.Playing;
     }
