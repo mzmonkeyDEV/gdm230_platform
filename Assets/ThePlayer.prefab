@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &191632936608042563
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 76175558164910018}
+  m_Layer: 0
+  m_Name: AttackPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &76175558164910018
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 191632936608042563}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.606, y: -0.036, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8585723520169603533}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &227435497970439356
 GameObject:
   m_ObjectHideFlags: 0
@@ -69,6 +100,7 @@ Transform:
   m_Children:
   - {fileID: 1578953323956103644}
   - {fileID: 8120517268217021741}
+  - {fileID: 76175558164910018}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &5254953056020264656
@@ -235,10 +267,14 @@ MonoBehaviour:
   dashCooldown: 1
   ghostPrefab: {fileID: 6111466262012458096, guid: 3402abcf2acad6c41b3f7389113e60a3, type: 3}
   ghostSpawnDelay: 0.05
+  footSmoke: {fileID: 0}
   tiltAngle: 10
   tiltSpeed: 15
   spinDuration: 0.1
   numberOfSpins: 2
+  walkSound: {fileID: 0}
+  jumpSound: {fileID: 0}
+  dashSound: {fileID: 0}
   groundCheck: {fileID: 1578953323956103644}
   groundCheckRadius: 0.2
   groundLayer:

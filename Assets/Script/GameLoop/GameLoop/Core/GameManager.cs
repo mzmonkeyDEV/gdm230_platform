@@ -158,6 +158,7 @@ public class GameManager : MonoBehaviour
             player.TeleportTo(RespawnPoint);
             player.StopMotion();
             player.SetControlEnabled(true);
+            player.ResetHP();
             player.SetInvincible(postRespawnInvincible);
             spawnCam.SetActive(true);
         }
