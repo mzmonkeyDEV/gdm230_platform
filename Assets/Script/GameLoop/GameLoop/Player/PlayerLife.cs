@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using Unity.Cinemachine;
 
 public class PlayerLife : MonoBehaviour, IDamageable
 {
@@ -8,8 +9,17 @@ public class PlayerLife : MonoBehaviour, IDamageable
 
     [Header("HP")]
     [SerializeField] private int currentHP;
+    private int maxHP;
 
+    [Header("UI & Feedback")]
+    [SerializeField] private GameObject[] heartIcons;
+    [SerializeField] private CinemachineImpulseSource impulseSource;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip damageSound; // damage sound here
+    private AudioSource sfxSource;
+
+    [Header("References")]
     [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private MonoBehaviour playerController;
     [SerializeField] private Rigidbody2D rb;
@@ -24,11 +34,27 @@ public class PlayerLife : MonoBehaviour, IDamageable
     void Reset()
     {
         rb = GetComponent<Rigidbody2D>();
+        impulseSource = GetComponent<CinemachineImpulseSource>();
+    }
+
+    void Awake()
+    {
+        // Automatically create the AudioSource and make it 2D so it's loud and clear
+        sfxSource = gameObject.AddComponent<AudioSource>();
+        sfxSource.spatialBlend = 0f;
+    }
+
+    public void Start()
+    {
+        ResetHP();
+        if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     public void Kill()
     {
         if (_invincible) return;
+        currentHP = 0;
+        UpdateHealthUI();
         GameManager.I?.PlayerDied();
     }
 
@@ -67,22 +93,48 @@ public class PlayerLife : MonoBehaviour, IDamageable
     public void TakeDamage(int amount, Vector3 p)
     {
         if (_invincible) return;
+
         currentHP -= Mathf.Max(0, amount);
+
+        // --- NEW: Play Damage Sound ---
+        if (damageSound != null && sfxSource != null)
+        {
+            sfxSource.PlayOneShot(damageSound);
+        }
+
+        if (impulseSource != null)
+        {
+            impulseSource.GenerateImpulse();
+        }
+
+        UpdateHealthUI();
+
         StartCoroutine(Flash());
         Debug.Log($"Player HP: {currentHP}");
+
         if (currentHP <= 0) { Kill(); return; }
         if (invincibleTime > 0f) SetInvincible(invincibleTime);
     }
 
-    public void Start()
-    {
-        ResetHP();
-        spriteRenderer = GetComponent<SpriteRenderer>();
-    }
     public void ResetHP()
     {
-        int max = (config != null) ? config.playerMaxHP : 5;
-        currentHP = max;
+        maxHP = (config != null) ? config.playerMaxHP : 5;
+        currentHP = maxHP;
+        UpdateHealthUI();
+    }
+
+    private void UpdateHealthUI()
+    {
+        if (heartIcons == null || heartIcons.Length == 0) return;
+
+        float healthPercent = (float)currentHP / maxHP;
+        int activeHearts = Mathf.CeilToInt(healthPercent * heartIcons.Length);
+        activeHearts = Mathf.Clamp(activeHearts, 0, heartIcons.Length);
+
+        for (int i = 0; i < heartIcons.Length; i++)
+        {
+            heartIcons[i].SetActive(i < activeHearts);
+        }
     }
 
     IEnumerator Flash()

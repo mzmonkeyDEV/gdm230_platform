@@ -32,6 +32,10 @@ public class PlayerMovement : MonoBehaviour
     public AudioClip jumpSound;
     public AudioClip dashSound;
 
+    [Header("Combat")]
+    public Transform attackPoint;
+    public GameObject attacksprite;// NEW: Drag your empty Attack Point object here
+
     [Header("Ground Detection")]
     public Transform groundCheck;
     public float groundCheckRadius = 0.2f;
@@ -209,7 +213,27 @@ public class PlayerMovement : MonoBehaviour
 
         if (spriteRenderer != null && isMoving)
         {
-            spriteRenderer.flipX = moveInput.x < 0f;
+            // --- NEW: Flip Logic ---
+            bool isFacingLeft = moveInput.x < 0f;
+            spriteRenderer.flipX = isFacingLeft;
+
+            if (attackPoint != null)
+            {
+                // 1. Move the position horizontally
+                Vector3 localPos = attackPoint.localPosition;
+                localPos.x = Mathf.Abs(localPos.x) * (isFacingLeft ? -1f : 1f);
+                attackPoint.localPosition = localPos;
+                attacksprite.transform.localPosition = localPos;
+
+                // 2. Flip the attack point's sprite (if it has one)
+                SpriteRenderer attackSprite = attacksprite.GetComponent<SpriteRenderer>();
+                if (attackSprite != null)
+                {
+                    attackSprite.flipX = isFacingLeft;
+                }
+            }
+            // -----------------------
+
             animator.SetBool("running", true);
         }
         else
@@ -282,6 +306,13 @@ public class PlayerMovement : MonoBehaviour
         {
             Gizmos.color = isGrounded ? Color.green : Color.red;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
+        }
+
+        // Optional: Draw a little gizmo for the attack point so you can see it easily in the editor
+        if (attackPoint != null)
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(attackPoint.position, 0.3f);
         }
     }
 }
