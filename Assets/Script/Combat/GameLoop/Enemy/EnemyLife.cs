@@ -7,12 +7,11 @@ public class EnemyLife : MonoBehaviour, IDamageable
     [SerializeField] private CombatConfig config;
     [SerializeField] private int currentHP;
 
-    // NEW: Expose HP so the AI script can read it safely
     public int CurrentHP => currentHP;
 
     [Header("Combat Feedback")]
     [SerializeField] private float knockbackForce = 5f;
-    [SerializeField] private float knockbackStunDuration = 0.3f; // NEW: How long the AI pauses
+    [SerializeField] private float knockbackStunDuration = 0.3f;
     [SerializeField] private AudioClip hitSound;
 
     [Header("References")]
@@ -46,7 +45,6 @@ public class EnemyLife : MonoBehaviour, IDamageable
         rb.linearVelocity = Vector2.zero;
         rb.AddForce(knockbackDir * knockbackForce, ForceMode2D.Impulse);
 
-        // --- NEW: Stun the AI so the knockback actually works ---
         EnemyAI ai = GetComponent<EnemyAI>();
         if (ai != null)
         {
@@ -62,6 +60,9 @@ public class EnemyLife : MonoBehaviour, IDamageable
 
     void Die()
     {
+        // --- NEW: Trigger instant win before destroying the enemy ---
+        GameManager.I?.Win();
+
         Destroy(gameObject);
     }
 
