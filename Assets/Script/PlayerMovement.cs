@@ -1,11 +1,15 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System.Collections;
+using static UnityEngine.Rendering.DebugUI;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Animator))]
 public class PlayerMovement : MonoBehaviour
 {
+    [Header("Input")]
+    private Mobile m_Mobile;
+
     [Header("Movement Settings")]
     public float moveSpeed = 5f;
     public float jumpForce = 10f;
@@ -57,6 +61,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
+        m_Mobile = new Mobile();
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
@@ -67,17 +72,25 @@ public class PlayerMovement : MonoBehaviour
         sfxSource = gameObject.AddComponent<AudioSource>();
     }
 
-    private void OnMove(InputValue value)
+    private void OnEnable()
     {
-        moveInput = value.Get<Vector2>();
+        m_Mobile.Enable();
+        m_Mobile.Player.Jump.performed += OnJumpPerformed;
+        m_Mobile.Player.Dash.performed += OnDashPerformed;
+    }
+    private void OnDisable()
+    {
+        m_Mobile.Disable();
+        m_Mobile.Player.Jump.performed -= OnJumpPerformed;
+        m_Mobile.Player.Dash.performed -= OnDashPerformed;
     }
 
-    private void OnJump(InputValue value)
+    private void OnJumpPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx)
     {
         if (isDashing) return;
 
-        if (value.isPressed)
-        {
+        
+        
             if (isGrounded)
             {
                 PerformJump();
@@ -94,16 +107,53 @@ public class PlayerMovement : MonoBehaviour
 
                 canDoubleJump = false;
             }
-        }
+        
     }
 
-    private void OnDash(InputValue value)
+    //private void OnMove(InputValue value)
+    //{
+    //    moveInput = value.Get<Vector2>();
+    //}
+
+    //private void OnJump(InputValue value)
+    //{
+    //    if (isDashing) return;
+
+    //    if (value.isPressed)
+    //    {
+    //        if (isGrounded)
+    //        {
+    //            PerformJump();
+    //            canDoubleJump = true;
+    //            CreateDust();
+    //        }
+    //        else if (canDoubleJump)
+    //        {
+    //            PerformJump();
+    //            animator.SetTrigger("jump");
+
+    //            StopCoroutine("DoSpin");
+    //            StartCoroutine("DoSpin");
+
+    //            canDoubleJump = false;
+    //        }
+    //    }
+    //}
+
+    private void OnDashPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx)
     {
-        if (value.isPressed && canDash)
+        if (canDash)
         {
             StartCoroutine(PerformDash());
         }
     }
+    //private void OnDash(InputValue value)
+    //{
+    //    if (value.isPressed && canDash)
+    //    {
+    //        StartCoroutine(PerformDash());
+    //    }
+    //}
 
     private void PerformJump()
     {
@@ -173,6 +223,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        moveInput = m_Mobile.Player.Move.ReadValue<Vector2>();
         if (isDashing)
         {
             if (walkSource.isPlaying) walkSource.Stop();

@@ -1,19 +1,35 @@
 using UnityEngine;
+using static UnityEngine.SpriteMask;
 
 public class PlayerAttack : MonoBehaviour
 {
+    [Header("Input")]
+    private Mobile m_Mobile;
     [SerializeField] private CombatConfig config;
     [SerializeField] private Transform attackPoint;
     [SerializeField] private LayerMask enemyLayer;
     [SerializeField] private GameObject hitAnim;
 
     float lastAttackTime;
-
-    private void OnAttack()
+    private void OnEnable()
+    {
+        m_Mobile.Enable();
+        m_Mobile.Player.Attack.performed += OnAttackPerformed;
+        
+    }
+    private void OnDisable()
+    {
+        m_Mobile.Disable();
+        m_Mobile.Player.Attack.performed -= OnAttackPerformed;
+    }
+    private void OnAttackPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx)
     {
         TryAttack();
     }
-
+    private void Awake()
+    {
+        m_Mobile = new Mobile();
+    }
     public void TryAttack()
     {
         float cd = (config != null) ? config.playerAttackCooldown : 0.5f;

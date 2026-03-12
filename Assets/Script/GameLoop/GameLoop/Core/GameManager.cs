@@ -6,6 +6,8 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager I { get; private set; }
 
+    private Mobile m_Mobile;
+
     [Header("References")]
     [SerializeField] private HUDController hud;
     [SerializeField] private PlayerLife player;
@@ -39,6 +41,7 @@ public class GameManager : MonoBehaviour
 
     void Awake()
     {
+        m_Mobile = new Mobile();
         I = this;
         sfxSource = gameObject.AddComponent<AudioSource>();
         sfxSource.spatialBlend = 0f;
