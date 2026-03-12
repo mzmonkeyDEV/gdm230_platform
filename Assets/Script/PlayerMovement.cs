@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using static UnityEngine.Rendering.DebugUI;
@@ -8,11 +9,13 @@ using static UnityEngine.Rendering.DebugUI;
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Input")]
-    private Mobile m_Mobile;
+    //private Mobile m_Mobile;
 
     [Header("Movement Settings")]
     public float moveSpeed = 5f;
     public float jumpForce = 10f;
+    public float swipeDuration = 1f;
+    private float swiping = 0f;
 
     [Header("Dash Settings")]
     public float dashSpeed = 20f;
@@ -61,7 +64,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
-        m_Mobile = new Mobile();
+        //m_Mobile = new Mobile();
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
@@ -72,43 +75,67 @@ public class PlayerMovement : MonoBehaviour
         sfxSource = gameObject.AddComponent<AudioSource>();
     }
 
-    private void OnEnable()
-    {
-        m_Mobile.Enable();
-        m_Mobile.Player.Jump.performed += OnJumpPerformed;
-        m_Mobile.Player.Dash.performed += OnDashPerformed;
-    }
-    private void OnDisable()
-    {
-        m_Mobile.Disable();
-        m_Mobile.Player.Jump.performed -= OnJumpPerformed;
-        m_Mobile.Player.Dash.performed -= OnDashPerformed;
-    }
-
-    private void OnJumpPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx)
+    public void SwipeMoveLeft() { moveInput = Vector2.left; swiping = swipeDuration; }
+    public void SwipeMoveRight() {  moveInput = Vector2.right; swiping = swipeDuration; }
+    public void SwipeMoveStop() { moveInput = Vector2.zero; }
+    public void SwipeMoveJump() 
     {
         if (isDashing) return;
+        if (isGrounded)
+        {
+            PerformJump();
+            canDoubleJump = true;
+            CreateDust();
+        }
+        else if (canDoubleJump)
+        {
+            PerformJump();
+            animator.SetTrigger("jump");
 
-        
-        
-            if (isGrounded)
-            {
-                PerformJump();
-                canDoubleJump = true;
-                CreateDust();
-            }
-            else if (canDoubleJump)
-            {
-                PerformJump();
-                animator.SetTrigger("jump");
+            StopCoroutine("DoSpin");
+            StartCoroutine("DoSpin");
 
-                StopCoroutine("DoSpin");
-                StartCoroutine("DoSpin");
-
-                canDoubleJump = false;
-            }
-        
+            canDoubleJump = false;
+        }
     }
+
+    //private void OnEnable()
+    //{
+    //    m_Mobile.Enable();
+    //    m_Mobile.Player.Jump.performed += OnJumpPerformed;
+    //    m_Mobile.Player.Dash.performed += OnDashPerformed;
+    //}
+    //private void OnDisable()
+    //{
+    //    m_Mobile.Disable();
+    //    m_Mobile.Player.Jump.performed -= OnJumpPerformed;
+    //    m_Mobile.Player.Dash.performed -= OnDashPerformed;
+    //}
+
+    //private void OnJumpPerformed(UnityEngine.InputSystem.InputAction.CallbackContext ctx)
+    //{
+    //    if (isDashing) return;
+
+
+
+    //        if (isGrounded)
+    //        {
+    //            PerformJump();
+    //            canDoubleJump = true;
+    //            CreateDust();
+    //        }
+    //        else if (canDoubleJump)
+    //        {
+    //            PerformJump();
+    //            animator.SetTrigger("jump");
+
+    //            StopCoroutine("DoSpin");
+    //            StartCoroutine("DoSpin");
+
+    //            canDoubleJump = false;
+    //        }
+
+    //}
 
     //private void OnMove(InputValue value)
     //{
@@ -223,7 +250,12 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
-        moveInput = m_Mobile.Player.Move.ReadValue<Vector2>();
+        //moveInput = m_Mobile.Player.Move.ReadValue<Vector2>();
+        swiping -= Time.deltaTime;
+        if (swiping <= 0)
+        {
+            SwipeMoveStop();
+        }
         if (isDashing)
         {
             if (walkSource.isPlaying) walkSource.Stop();
