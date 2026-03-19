@@ -13,6 +13,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private PlayerLife player;
     [SerializeField] private SpriteRenderer playerSprite;
     public GameObject spawnCam;
+    [SerializeField] private InterstitialAdController interstitialAdController;
 
     [Header("Rules")]
     [SerializeField] private int coinsToWin = 5;
@@ -129,6 +130,10 @@ public class GameManager : MonoBehaviour
             sfxSource.PlayOneShot(deathSound);
         }
 
+        if (interstitialAdController != null)
+        {
+            interstitialAdController.ShowInterstitial();
+        }
         StartCoroutine(CoRespawn());
     }
 
